@@ -1,0 +1,87 @@
+rules:
+  - id: php-unserialize-from-input
+    pattern-either:
+      - pattern: unserialize($_GET[...])
+      - pattern: unserialize($_POST[...])
+      - pattern: unserialize($_COOKIE[...])
+      - pattern: unserialize($_REQUEST[...])
+      - pattern: igbinary_unserialize($_COOKIE[...])
+    message: "Potential insecure deserialization from user-controlled input."
+    severity: ERROR
+    languages: [php]
+    metadata:
+      cwe: "CWE-502"
+
+  - id: php-unserialize-raw
+    pattern: |
+      unserialize($ANY)
+    message: "Use of unserialize(); verify that input is trusted."
+    severity: WARNING
+    languages: [php]
+
+  - id: php-preg-eval
+    pattern: |
+      preg_replace($PATTERN, $REPLACEMENT, $SUBJECT)
+    where:
+      $PATTERN =~ "/e"
+    message: "Use of preg_replace() with /e modifier is equivalent to eval(), risk of code execution."
+    severity: ERROR
+    languages: [php]
+
+  - id: php-assert-dynamic
+    pattern: assert($ANY)
+    message: "Assert() called with dynamic argument; this can lead to code execution."
+    severity: ERROR
+    languages: [php]
+
+  - id: php-call-user-func-from-input
+    pattern-either:
+      - pattern: call_user_func($_GET[...])
+      - pattern: call_user_func_array($_POST[...], ...)
+      - pattern: forward_static_call($_REQUEST[...], ...)
+    message: "Dynamic function call using user input; check for injection."
+    severity: ERROR
+    languages: [php]
+
+  - id: php-magic-destruct
+    pattern: |
+      function __destruct() {
+          ...
+      }
+    message: "Magic method __destruct() detected; may be abused as part of an object injection gadget chain."
+    severity: INFO
+    languages: [php]
+
+  - id: php-magic-wakeup
+    pattern: |
+      function __wakeup() {
+          ...
+      }
+    message: "Magic method __wakeup() detected; invoked during unserialize(), potential gadget entry."
+    severity: INFO
+    languages: [php]
+
+  - id: php-magic-get
+    pattern: |
+      function __get($...)
+      {
+          ...
+      }
+    message: "Magic method __get() detected; can trigger dynamic code execution when accessing undefined properties."
+    severity: INFO
+    languages: [php]
+
+  - id: php-magic-invoke
+    pattern: |
+      function __invoke() {
+          ...
+      }
+    message: "Magic method __invoke() detected; object can be called like a function, potential gadget usage."
+    severity: INFO
+    languages: [php]
+
+  - id: php-session-deserialize
+    pattern: session_start()
+    message: "session_start() found; verify session.serialize_handler settings and potential object injection via PHPSESSID."
+    severity: INFO
+    languages: [php]
